@@ -64,11 +64,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				mood: {
-					happy: '#FFD166',
-					calm: '#06D6A0',
-					sad: '#118AB2',
-					energetic: '#EF476F',
-					focus: '#073B4C'
+					happy: '#D946EF',     // Magenta Pink
+					calm: '#9B87F5',      // Primary Purple
+					sad: '#7E69AB',       // Secondary Purple
+					energetic: '#E5DEFF', // Soft Purple
+					focus: '#6E59A5'      // Tertiary Purple
 				}
 			},
 			borderRadius: {
