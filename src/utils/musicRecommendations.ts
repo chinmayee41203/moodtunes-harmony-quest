@@ -36,7 +36,7 @@ const fetchRecommendations = (mood: string): Promise<Song[]> => {
       { id: 'c6', title: 'Albatross', artist: 'Fleetwood Mac', albumArt: getRandomAlbumArt(12), duration: 212 },
     ],
     sad: [
-      { id: 's1', title: 'Nothing Compares 2 U', artist: 'Sinéad O'Connor', albumArt: getRandomAlbumArt(13), duration: 310 },
+      { id: 's1', title: 'Nothing Compares 2 U', artist: "Sinéad O'Connor", albumArt: getRandomAlbumArt(13), duration: 310 },
       { id: 's2', title: 'Tears in Heaven', artist: 'Eric Clapton', albumArt: getRandomAlbumArt(14), duration: 274 },
       { id: 's3', title: 'Everybody Hurts', artist: 'R.E.M.', albumArt: getRandomAlbumArt(15), duration: 318 },
       { id: 's4', title: 'Hurt', artist: 'Johnny Cash', albumArt: getRandomAlbumArt(16), duration: 216 },
@@ -45,7 +45,7 @@ const fetchRecommendations = (mood: string): Promise<Song[]> => {
     ],
     energetic: [
       { id: 'e1', title: 'Eye of the Tiger', artist: 'Survivor', albumArt: getRandomAlbumArt(19), duration: 243 },
-      { id: 'e2', title: 'Don't Stop Me Now', artist: 'Queen', albumArt: getRandomAlbumArt(20), duration: 209 },
+      { id: 'e2', title: "Don't Stop Me Now", artist: 'Queen', albumArt: getRandomAlbumArt(20), duration: 209 },
       { id: 'e3', title: 'Thunderstruck', artist: 'AC/DC', albumArt: getRandomAlbumArt(21), duration: 292 },
       { id: 'e4', title: 'Stronger', artist: 'Kanye West', albumArt: getRandomAlbumArt(22), duration: 312 },
       { id: 'e5', title: 'Titanium', artist: 'David Guetta ft. Sia', albumArt: getRandomAlbumArt(23), duration: 245 },
