@@ -25,7 +25,7 @@ const fetchRecommendations = (mood: string): Promise<Song[]> => {
       { id: 'h3', title: 'Good Vibrations', artist: 'The Beach Boys', albumArt: getRandomAlbumArt(3), duration: 219 },
       { id: 'h4', title: 'Uptown Funk', artist: 'Mark Ronson ft. Bruno Mars', albumArt: getRandomAlbumArt(4), duration: 270 },
       { id: 'h5', title: 'I Got You (I Feel Good)', artist: 'James Brown', albumArt: getRandomAlbumArt(5), duration: 167 },
-      { id: 'h6', title: 'Can't Stop the Feeling!', artist: 'Justin Timberlake', albumArt: getRandomAlbumArt(6), duration: 236 },
+      { id: 'h6', title: "Can't Stop the Feeling!", artist: 'Justin Timberlake', albumArt: getRandomAlbumArt(6), duration: 236 },
     ],
     calm: [
       { id: 'c1', title: 'Weightless', artist: 'Marconi Union', albumArt: getRandomAlbumArt(7), duration: 480 },
