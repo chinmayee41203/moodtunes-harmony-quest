@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Heart } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, VolumeX } from 'lucide-react';
 import MusicVisualizer from './MusicVisualizer';
 
 interface Song {
@@ -9,6 +9,7 @@ interface Song {
   artist: string;
   albumArt: string;
   duration: number;
+  audioUrl: string;
 }
 
 interface MusicPlayerProps {
@@ -23,36 +24,130 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     artist: 'MoodTunes AI',
     albumArt: 'https://picsum.photos/400/400',
     duration: 180,
+    audioUrl: '',
   },
   mood
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [volume, setVolume] = useState(0.7);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
+  // Create audio element ref
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setIsPlaying(false);
-            return 0;
-          }
-          return prev + (100 / song.duration) * 0.1;
-        });
-      }, 100);
-    }
+    audioRef.current = new Audio();
+    audioRef.current.volume = volume;
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
     };
-  }, [isPlaying, song.duration]);
+  }, []);
+  
+  // Update audio src when song changes
+  useEffect(() => {
+    if (audioRef.current && song.audioUrl) {
+      audioRef.current.src = song.audioUrl;
+      audioRef.current.load();
+      setProgress(0);
+      
+      if (isPlaying) {
+        audioRef.current.play().catch(err => {
+          console.error("Error playing audio:", err);
+          setIsPlaying(false);
+        });
+      }
+    }
+  }, [song]);
+  
+  // Handle play/pause
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    if (isPlaying) {
+      audioRef.current.play().catch(err => {
+        console.error("Error playing audio:", err);
+        setIsPlaying(false);
+      });
+    } else {
+      audioRef.current.pause();
+    }
+  }, [isPlaying]);
+  
+  // Update progress as song plays
+  useEffect(() => {
+    if (!audioRef.current) return;
+    
+    const updateProgress = () => {
+      if (audioRef.current) {
+        const currentProgress = (audioRef.current.currentTime / song.duration) * 100;
+        setProgress(currentProgress);
+      }
+    };
+    
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setProgress(0);
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+      }
+    };
+    
+    audioRef.current.addEventListener('timeupdate', updateProgress);
+    audioRef.current.addEventListener('ended', handleEnded);
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.removeEventListener('timeupdate', updateProgress);
+        audioRef.current.removeEventListener('ended', handleEnded);
+      }
+    };
+  }, [song.duration]);
+  
+  // Update volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
   
   const togglePlayback = () => {
-    setIsPlaying(!isPlaying);
+    if (song.audioUrl) {
+      setIsPlaying(!isPlaying);
+    }
+  };
+  
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current) return;
+    
+    const container = e.currentTarget;
+    const bounds = container.getBoundingClientRect();
+    const x = e.clientX - bounds.left;
+    const percentage = (x / bounds.width) * 100;
+    const newTime = (percentage / 100) * song.duration;
+    
+    setProgress(percentage);
+    audioRef.current.currentTime = newTime;
+  };
+  
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+  
+  const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const bounds = container.getBoundingClientRect();
+    const x = e.clientX - bounds.left;
+    const newVolume = Math.max(0, Math.min(1, x / bounds.width));
+    
+    setVolume(newVolume);
+    if (isMuted && newVolume > 0) {
+      setIsMuted(false);
+    }
   };
   
   const formatTime = (seconds: number) => {
@@ -104,7 +199,10 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       </div>
       
       <div className="w-full space-y-2">
-        <div className="player-progress">
+        <div 
+          className="player-progress cursor-pointer"
+          onClick={handleSeek}
+        >
           <div 
             className={`h-full ${getMoodColor(mood)} transition-all duration-100 ease-linear`}
             style={{ width: `${progress}%` }}
@@ -127,9 +225,14 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
         </button>
         
         <div className="flex items-center gap-2">
-          <Volume2 className="w-5 h-5 text-muted-foreground" />
-          <div className="w-20 h-1 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-primary w-3/4" />
+          <button onClick={toggleMute} className="text-muted-foreground">
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+          <div 
+            className="w-20 h-1 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden cursor-pointer"
+            onClick={handleVolumeChange}
+          >
+            <div className="h-full bg-primary" style={{ width: `${volume * 100}%` }} />
           </div>
         </div>
       </div>
