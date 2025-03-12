@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -64,11 +63,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				mood: {
-					happy: '#D946EF',     // Magenta Pink
-					calm: '#9B87F5',      // Primary Purple
-					sad: '#7E69AB',       // Secondary Purple
-					energetic: '#E5DEFF', // Soft Purple
-					focus: '#6E59A5'      // Tertiary Purple
+					happy: '#F472B6',     // Pink
+					calm: '#C084FC',      // Light Purple
+					sad: '#8B5CF6',       // Medium Purple
+					energetic: '#FBCFE8', // Soft Pink
+					focus: '#7C3AED'      // Vibrant Purple
 				}
 			},
 			borderRadius: {
