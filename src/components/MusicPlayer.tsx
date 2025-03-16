@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, VolumeX } from 'lucide-react';
 import MusicVisualizer from './MusicVisualizer';
@@ -51,10 +50,12 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   // Update audio src when song changes
   useEffect(() => {
     if (audioRef.current && song.audioUrl) {
+      // Set the source and load the audio
       audioRef.current.src = song.audioUrl;
       audioRef.current.load();
       setProgress(0);
       
+      // If we were playing, continue playing the new song
       if (isPlaying) {
         audioRef.current.play().catch(err => {
           console.error("Error playing audio:", err);
@@ -63,20 +64,6 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       }
     }
   }, [song]);
-  
-  // Handle play/pause
-  useEffect(() => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.play().catch(err => {
-        console.error("Error playing audio:", err);
-        setIsPlaying(false);
-      });
-    } else {
-      audioRef.current.pause();
-    }
-  }, [isPlaying]);
   
   // Update progress as song plays
   useEffect(() => {
@@ -116,8 +103,23 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   }, [volume, isMuted]);
   
   const togglePlayback = () => {
-    if (song.audioUrl) {
-      setIsPlaying(!isPlaying);
+    if (!song.audioUrl) return;
+    
+    if (!isPlaying) {
+      // We're going to play, make sure audio is loaded
+      if (audioRef.current) {
+        audioRef.current.play().then(() => {
+          setIsPlaying(true);
+        }).catch(err => {
+          console.error("Error playing audio:", err);
+        });
+      }
+    } else {
+      // We're pausing
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
     }
   };
   
