@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, VolumeX } from 'lucide-react';
 import MusicVisualizer from './MusicVisualizer';
@@ -23,7 +24,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     artist: 'MoodTunes AI',
     albumArt: 'https://picsum.photos/400/400',
     duration: 180,
-    audioUrl: '',
+    audioUrl: 'https://cdn.freesound.org/previews/445/445037_9159316-lq.mp3', // Added default audio
   },
   mood
 }) => {
@@ -50,18 +51,21 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   // Update audio src when song changes
   useEffect(() => {
     if (audioRef.current && song.audioUrl) {
+      // Stop any current playback
+      audioRef.current.pause();
+      
       // Set the source and load the audio
       audioRef.current.src = song.audioUrl;
       audioRef.current.load();
       setProgress(0);
       
-      // If we were playing, continue playing the new song
-      if (isPlaying) {
-        audioRef.current.play().catch(err => {
-          console.error("Error playing audio:", err);
-          setIsPlaying(false);
-        });
-      }
+      // Start playing the new song immediately
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        console.error("Error playing audio:", err);
+        setIsPlaying(false);
+      });
     }
   }, [song]);
   
