@@ -36,6 +36,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { toast } = useToast();
+  const audioSourceRef = useRef<string>('');
   
   // Create audio element ref
   useEffect(() => {
@@ -55,41 +56,50 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   useEffect(() => {
     if (!audioRef.current || !song || !song.audioUrl) return;
     
-    const playAudio = async () => {
-      try {
-        // Stop any current playback
-        audioRef.current?.pause();
-        
-        // Set the source and load the audio
-        audioRef.current.src = song.audioUrl;
-        audioRef.current.volume = isMuted ? 0 : volume;
-        
-        // Wait for audio to be loaded
-        await audioRef.current.load();
-        setProgress(0);
-        
-        // Try playing the audio
-        await audioRef.current.play();
-        setIsPlaying(true);
-        
-        toast({
-          title: "Now Playing",
-          description: `${song.title} by ${song.artist}`,
-          duration: 2000,
-        });
-      } catch (err) {
-        console.error("Error playing audio:", err);
-        setIsPlaying(false);
-        
-        toast({
-          title: "Playback Error",
-          description: "There was an error playing this song. Try another.",
-          variant: "destructive",
-        });
-      }
+    // Only update if the audioUrl has actually changed
+    if (audioSourceRef.current === song.audioUrl) return;
+    
+    audioSourceRef.current = song.audioUrl;
+    
+    const loadAudio = () => {
+      if (!audioRef.current) return;
+      
+      // Stop any current playback first to prevent AbortError
+      setIsPlaying(false);
+      audioRef.current.pause();
+      
+      // Update the audio properties
+      audioRef.current.src = song.audioUrl;
+      audioRef.current.volume = isMuted ? 0 : volume;
+      audioRef.current.load();
+      setProgress(0);
+      
+      // Play the audio after a short delay
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.play()
+            .then(() => {
+              setIsPlaying(true);
+              toast({
+                title: "Now Playing",
+                description: `${song.title} by ${song.artist}`,
+                duration: 2000,
+              });
+            })
+            .catch((err) => {
+              console.error("Error playing audio:", err);
+              setIsPlaying(false);
+              toast({
+                title: "Playback Error",
+                description: "There was an error playing this song. Try another.",
+                variant: "destructive",
+              });
+            });
+        }
+      }, 300);
     };
     
-    playAudio();
+    loadAudio();
   }, [song, toast, volume, isMuted]);
   
   // Update progress as song plays
@@ -129,26 +139,26 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     }
   }, [volume, isMuted]);
   
-  const togglePlayback = async () => {
+  const togglePlayback = () => {
     if (!audioRef.current || !song || !song.audioUrl) return;
     
-    try {
-      if (!isPlaying) {
-        // Play the audio
-        await audioRef.current.play();
-        setIsPlaying(true);
-      } else {
-        // Pause the audio
-        audioRef.current.pause();
-        setIsPlaying(false);
-      }
-    } catch (err) {
-      console.error("Error toggling playback:", err);
-      toast({
-        title: "Playback Error",
-        description: "There was an error with audio playback. Try again.",
-        variant: "destructive",
-      });
+    if (!isPlaying) {
+      // Make sure to handle the Promise correctly
+      audioRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((err) => {
+          console.error("Error toggling playback:", err);
+          toast({
+            title: "Playback Error",
+            description: "There was an error with audio playback. Try again.",
+            variant: "destructive",
+          });
+        });
+    } else {
+      audioRef.current.pause();
+      setIsPlaying(false);
     }
   };
   
