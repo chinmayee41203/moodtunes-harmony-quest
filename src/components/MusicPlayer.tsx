@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, VolumeX } from 'lucide-react';
 import MusicVisualizer from './MusicVisualizer';
+import { useToast } from "@/hooks/use-toast";
 
 interface Song {
   id: string;
@@ -24,7 +25,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     artist: 'MoodTunes AI',
     albumArt: 'https://picsum.photos/400/400',
     duration: 180,
-    audioUrl: 'https://cdn.freesound.org/previews/445/445037_9159316-lq.mp3', // Added default audio
+    audioUrl: 'https://cdn.freesound.org/previews/445/445037_9159316-lq.mp3',
   },
   mood
 }) => {
@@ -34,11 +35,13 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { toast } = useToast();
   
   // Create audio element ref
   useEffect(() => {
-    audioRef.current = new Audio();
-    audioRef.current.volume = volume;
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+    }
     
     return () => {
       if (audioRef.current) {
@@ -50,31 +53,51 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   
   // Update audio src when song changes
   useEffect(() => {
-    if (audioRef.current && song.audioUrl) {
-      // Stop any current playback
-      audioRef.current.pause();
-      
-      // Set the source and load the audio
-      audioRef.current.src = song.audioUrl;
-      audioRef.current.load();
-      setProgress(0);
-      
-      // Start playing the new song immediately
-      audioRef.current.play().then(() => {
+    if (!audioRef.current || !song || !song.audioUrl) return;
+    
+    const playAudio = async () => {
+      try {
+        // Stop any current playback
+        audioRef.current?.pause();
+        
+        // Set the source and load the audio
+        audioRef.current.src = song.audioUrl;
+        audioRef.current.volume = isMuted ? 0 : volume;
+        
+        // Wait for audio to be loaded
+        await audioRef.current.load();
+        setProgress(0);
+        
+        // Try playing the audio
+        await audioRef.current.play();
         setIsPlaying(true);
-      }).catch(err => {
+        
+        toast({
+          title: "Now Playing",
+          description: `${song.title} by ${song.artist}`,
+          duration: 2000,
+        });
+      } catch (err) {
         console.error("Error playing audio:", err);
         setIsPlaying(false);
-      });
-    }
-  }, [song]);
+        
+        toast({
+          title: "Playback Error",
+          description: "There was an error playing this song. Try another.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    playAudio();
+  }, [song, toast, volume, isMuted]);
   
   // Update progress as song plays
   useEffect(() => {
     if (!audioRef.current) return;
     
     const updateProgress = () => {
-      if (audioRef.current) {
+      if (audioRef.current && song) {
         const currentProgress = (audioRef.current.currentTime / song.duration) * 100;
         setProgress(currentProgress);
       }
@@ -97,7 +120,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
         audioRef.current.removeEventListener('ended', handleEnded);
       }
     };
-  }, [song.duration]);
+  }, [song]);
   
   // Update volume
   useEffect(() => {
@@ -106,29 +129,31 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     }
   }, [volume, isMuted]);
   
-  const togglePlayback = () => {
-    if (!song.audioUrl) return;
+  const togglePlayback = async () => {
+    if (!audioRef.current || !song || !song.audioUrl) return;
     
-    if (!isPlaying) {
-      // We're going to play, make sure audio is loaded
-      if (audioRef.current) {
-        audioRef.current.play().then(() => {
-          setIsPlaying(true);
-        }).catch(err => {
-          console.error("Error playing audio:", err);
-        });
-      }
-    } else {
-      // We're pausing
-      if (audioRef.current) {
+    try {
+      if (!isPlaying) {
+        // Play the audio
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } else {
+        // Pause the audio
         audioRef.current.pause();
         setIsPlaying(false);
       }
+    } catch (err) {
+      console.error("Error toggling playback:", err);
+      toast({
+        title: "Playback Error",
+        description: "There was an error with audio playback. Try again.",
+        variant: "destructive",
+      });
     }
   };
   
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !song) return;
     
     const container = e.currentTarget;
     const bounds = container.getBoundingClientRect();
@@ -162,7 +187,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
   
-  const currentTime = (progress / 100) * song.duration;
+  const currentTime = song ? (progress / 100) * song.duration : 0;
 
   return (
     <div className="w-full max-w-md mx-auto glass-card p-6 transition-all duration-500 animate-fade-in">
@@ -217,7 +242,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
         
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(song.duration)}</span>
+          <span>{song ? formatTime(song.duration) : '0:00'}</span>
         </div>
       </div>
       
