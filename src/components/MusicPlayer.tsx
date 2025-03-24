@@ -1,9 +1,18 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, VolumeX } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { useToast } from "@/hooks/use-toast";
+import { usePlaybackControls } from '@/hooks/usePlaybackControls';
+import { useVolumeControls } from '@/hooks/useVolumeControls';
+import { useYouTubePlayer } from '@/hooks/useYouTubePlayer';
+
 import MusicVisualizer from './MusicVisualizer';
 import YouTubePlayer from './YouTubePlayer';
-import { useToast } from "@/hooks/use-toast";
+import AlbumArt from './player/AlbumArt';
+import TrackInfo from './player/TrackInfo';
+import PlayerControls from './player/PlayerControls';
+import ProgressBar from './player/ProgressBar';
+import FavoriteButton from './player/FavoriteButton';
+import VolumeControl from './player/VolumeControl';
 
 interface Song {
   id: string;
@@ -32,14 +41,15 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   },
   mood
 }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [volume, setVolume] = useState(0.7);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isPlayerReady, setIsPlayerReady] = useState(false);
-  const [playerError, setPlayerError] = useState<any>(null);
+  const { 
+    isPlaying, setIsPlaying, progress, setProgress, 
+    isFavorite, togglePlayback, handleSeek, formatTime, toggleFavorite 
+  } = usePlaybackControls(song);
+  
+  const { volume, isMuted, toggleMute, handleVolumeChange } = useVolumeControls();
+  const { isPlayerReady, handlePlayerReady, handlePlayerError, handlePlayerStateChange } = useYouTubePlayer();
   const { toast } = useToast();
+  
   const currentSongRef = useRef<string>('');
   
   useEffect(() => {
@@ -63,15 +73,19 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       
       return () => clearTimeout(timer);
     }
-  }, [song, isPlayerReady, toast]);
+  }, [song, isPlayerReady, toast, setIsPlaying, setProgress]);
   
-  const handlePlayerReady = () => {
-    setIsPlayerReady(true);
+  const handleYouTubeStateChange = (state: number) => {
+    const newState = handlePlayerStateChange(state);
+    // YT.PlayerState.ENDED = 0
+    if (newState === 0) {
+      setIsPlaying(false);
+      setProgress(100);
+    }
   };
   
-  const handlePlayerError = (error: any) => {
-    console.error("YouTube Player Error:", error);
-    setPlayerError(error);
+  const handleYouTubeError = (error: any) => {
+    const processedError = handlePlayerError(error);
     setIsPlaying(false);
     
     toast({
@@ -79,64 +93,6 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       description: "There was an error playing this song. Try another.",
       variant: "destructive",
     });
-  };
-  
-  const handlePlayerStateChange = (state: number) => {
-    // YT.PlayerState.ENDED = 0
-    if (state === 0) {
-      setIsPlaying(false);
-      setProgress(100);
-    }
-  };
-  
-  const togglePlayback = () => {
-    if (!song) return;
-    
-    setIsPlaying(!isPlaying);
-    
-    if (!isPlaying) {
-      toast({
-        title: isPlaying ? "Paused" : "Now Playing",
-        description: `${song.title} by ${song.artist}`,
-        duration: 2000,
-      });
-    }
-  };
-  
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!song) return;
-    
-    const container = e.currentTarget;
-    const bounds = container.getBoundingClientRect();
-    const x = e.clientX - bounds.left;
-    const percentage = (x / bounds.width) * 100;
-    
-    setProgress(percentage);
-    
-    // YouTube specific seeking
-    // This is handled by the YouTubePlayer component
-  };
-  
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
-  
-  const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const bounds = container.getBoundingClientRect();
-    const x = e.clientX - bounds.left;
-    const newVolume = Math.max(0, Math.min(1, x / bounds.width));
-    
-    setVolume(newVolume);
-    if (isMuted && newVolume > 0) {
-      setIsMuted(false);
-    }
-  };
-  
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
   
   const currentTime = song ? (progress / 100) * song.duration : 0;
@@ -147,104 +103,42 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
         <YouTubePlayer 
           videoId={song.youtubeId}
           isPlaying={isPlaying}
-          onStateChange={handlePlayerStateChange}
+          onStateChange={handleYouTubeStateChange}
           onReady={handlePlayerReady}
-          onError={handlePlayerError}
+          onError={handleYouTubeError}
           volume={isMuted ? 0 : volume}
           onProgress={setProgress}
         />
       )}
       
-      <div className="relative w-full aspect-square overflow-hidden rounded-xl mb-6 group">
-        <img 
-          src={song.albumArt} 
-          alt={song.title}
-          className="w-full h-full object-cover transition-transform duration-10000 ease-out group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      </div>
+      <AlbumArt src={song.albumArt} alt={song.title} />
       
       <MusicVisualizer isPlaying={isPlaying} mood={mood} />
       
-      <div className="text-center mt-4 mb-6">
-        <h3 className="text-xl font-semibold">{song.title}</h3>
-        <p className="text-muted-foreground">{song.artist}</p>
-      </div>
+      <TrackInfo title={song.title} artist={song.artist} />
       
-      <div className="player-controls">
-        <button className="player-control-button" aria-label="Previous song">
-          <SkipBack className="w-5 h-5" />
-        </button>
-        
-        <button 
-          className="player-control-button p-4 bg-primary/5 hover:bg-primary/10"
-          onClick={togglePlayback}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-        >
-          {isPlaying ? (
-            <Pause className="w-6 h-6" />
-          ) : (
-            <Play className="w-6 h-6" />
-          )}
-        </button>
-        
-        <button className="player-control-button" aria-label="Next song">
-          <SkipForward className="w-5 h-5" />
-        </button>
-      </div>
+      <PlayerControls isPlaying={isPlaying} onTogglePlay={togglePlayback} />
       
-      <div className="w-full space-y-2">
-        <div 
-          className="player-progress cursor-pointer"
-          onClick={handleSeek}
-        >
-          <div 
-            className={`h-full ${getMoodColor(mood)} transition-all duration-100 ease-linear`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{formatTime(currentTime)}</span>
-          <span>{song ? formatTime(song.duration) : '0:00'}</span>
-        </div>
-      </div>
+      <ProgressBar
+        progress={progress}
+        onSeek={handleSeek}
+        mood={mood}
+        currentTime={currentTime}
+        duration={song.duration}
+        formatTime={formatTime}
+      />
       
       <div className="flex justify-between items-center mt-6">
-        <button 
-          className={`p-2 rounded-full transition-colors ${isFavorite ? 'text-red-500' : 'text-muted-foreground hover:text-primary'}`}
-          onClick={() => setIsFavorite(!isFavorite)}
-          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-        >
-          <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
-        </button>
-        
-        <div className="flex items-center gap-2">
-          <button onClick={toggleMute} className="text-muted-foreground">
-            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-          </button>
-          <div 
-            className="w-20 h-1 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden cursor-pointer"
-            onClick={handleVolumeChange}
-          >
-            <div className="h-full bg-primary" style={{ width: `${volume * 100}%` }} />
-          </div>
-        </div>
+        <FavoriteButton isFavorite={isFavorite} onToggleFavorite={toggleFavorite} />
+        <VolumeControl 
+          volume={volume}
+          isMuted={isMuted}
+          onToggleMute={toggleMute}
+          onVolumeChange={handleVolumeChange}
+        />
       </div>
     </div>
   );
-};
-
-// Helper function to get color based on mood
-const getMoodColor = (mood: string): string => {
-  switch (mood) {
-    case 'happy': return 'bg-mood-happy';
-    case 'calm': return 'bg-mood-calm';
-    case 'sad': return 'bg-mood-sad';
-    case 'energetic': return 'bg-mood-energetic';
-    case 'focus': return 'bg-mood-focus';
-    default: return 'bg-primary';
-  }
 };
 
 export default MusicPlayer;
