@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, VolumeX } from 'lucide-react';
 import MusicVisualizer from './MusicVisualizer';
+import YouTubePlayer from './YouTubePlayer';
 import { useToast } from "@/hooks/use-toast";
 
 interface Song {
@@ -11,6 +12,7 @@ interface Song {
   albumArt: string;
   duration: number;
   audioUrl: string;
+  youtubeId: string;
 }
 
 interface MusicPlayerProps {
@@ -26,6 +28,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     albumArt: 'https://picsum.photos/400/400',
     duration: 180,
     audioUrl: 'https://cdn.freesound.org/previews/445/445037_9159316-lq.mp3',
+    youtubeId: 'dQw4w9WgXcQ', // Default YouTube ID
   },
   mood
 }) => {
@@ -34,145 +37,84 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   const [isFavorite, setIsFavorite] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [isMuted, setIsMuted] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [playerError, setPlayerError] = useState<any>(null);
   const { toast } = useToast();
-  const audioSourceRef = useRef<string>('');
+  const currentSongRef = useRef<string>('');
   
-  // Create audio element ref
   useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-    }
-    
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-      }
-    };
-  }, []);
-  
-  // Update audio src when song changes
-  useEffect(() => {
-    if (!audioRef.current || !song || !song.audioUrl) return;
-    
-    // Only update if the audioUrl has actually changed
-    if (audioSourceRef.current === song.audioUrl) return;
-    
-    audioSourceRef.current = song.audioUrl;
-    
-    const loadAudio = () => {
-      if (!audioRef.current) return;
-      
-      // Stop any current playback first to prevent AbortError
+    // Reset player state when song changes
+    if (song && song.id !== currentSongRef.current) {
       setIsPlaying(false);
-      audioRef.current.pause();
-      
-      // Update the audio properties
-      audioRef.current.src = song.audioUrl;
-      audioRef.current.volume = isMuted ? 0 : volume;
-      audioRef.current.load();
       setProgress(0);
+      currentSongRef.current = song.id;
       
-      // Play the audio after a short delay
-      setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.play()
-            .then(() => {
-              setIsPlaying(true);
-              toast({
-                title: "Now Playing",
-                description: `${song.title} by ${song.artist}`,
-                duration: 2000,
-              });
-            })
-            .catch((err) => {
-              console.error("Error playing audio:", err);
-              setIsPlaying(false);
-              toast({
-                title: "Playback Error",
-                description: "There was an error playing this song. Try another.",
-                variant: "destructive",
-              });
-            });
+      // Auto-play when a new song is selected (after a small delay)
+      const timer = setTimeout(() => {
+        if (isPlayerReady) {
+          setIsPlaying(true);
+          toast({
+            title: "Now Playing",
+            description: `${song.title} by ${song.artist}`,
+            duration: 2000,
+          });
         }
-      }, 300);
-    };
-    
-    loadAudio();
-  }, [song, toast, volume, isMuted]);
-  
-  // Update progress as song plays
-  useEffect(() => {
-    if (!audioRef.current) return;
-    
-    const updateProgress = () => {
-      if (audioRef.current && song) {
-        const currentProgress = (audioRef.current.currentTime / song.duration) * 100;
-        setProgress(currentProgress);
-      }
-    };
-    
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setProgress(0);
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-      }
-    };
-    
-    audioRef.current.addEventListener('timeupdate', updateProgress);
-    audioRef.current.addEventListener('ended', handleEnded);
-    
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.removeEventListener('timeupdate', updateProgress);
-        audioRef.current.removeEventListener('ended', handleEnded);
-      }
-    };
-  }, [song]);
-  
-  // Update volume
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
-  }, [volume, isMuted]);
+  }, [song, isPlayerReady, toast]);
+  
+  const handlePlayerReady = () => {
+    setIsPlayerReady(true);
+  };
+  
+  const handlePlayerError = (error: any) => {
+    console.error("YouTube Player Error:", error);
+    setPlayerError(error);
+    setIsPlaying(false);
+    
+    toast({
+      title: "Playback Error",
+      description: "There was an error playing this song. Try another.",
+      variant: "destructive",
+    });
+  };
+  
+  const handlePlayerStateChange = (state: number) => {
+    // YT.PlayerState.ENDED = 0
+    if (state === 0) {
+      setIsPlaying(false);
+      setProgress(100);
+    }
+  };
   
   const togglePlayback = () => {
-    if (!audioRef.current || !song || !song.audioUrl) return;
+    if (!song) return;
+    
+    setIsPlaying(!isPlaying);
     
     if (!isPlaying) {
-      // Make sure to handle the Promise correctly
-      audioRef.current.play()
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch((err) => {
-          console.error("Error toggling playback:", err);
-          toast({
-            title: "Playback Error",
-            description: "There was an error with audio playback. Try again.",
-            variant: "destructive",
-          });
-        });
-    } else {
-      audioRef.current.pause();
-      setIsPlaying(false);
+      toast({
+        title: isPlaying ? "Paused" : "Now Playing",
+        description: `${song.title} by ${song.artist}`,
+        duration: 2000,
+      });
     }
   };
   
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!audioRef.current || !song) return;
+    if (!song) return;
     
     const container = e.currentTarget;
     const bounds = container.getBoundingClientRect();
     const x = e.clientX - bounds.left;
     const percentage = (x / bounds.width) * 100;
-    const newTime = (percentage / 100) * song.duration;
     
     setProgress(percentage);
-    audioRef.current.currentTime = newTime;
+    
+    // YouTube specific seeking
+    // This is handled by the YouTubePlayer component
   };
   
   const toggleMute = () => {
@@ -201,6 +143,18 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   return (
     <div className="w-full max-w-md mx-auto glass-card p-6 transition-all duration-500 animate-fade-in">
+      {song && song.youtubeId && (
+        <YouTubePlayer 
+          videoId={song.youtubeId}
+          isPlaying={isPlaying}
+          onStateChange={handlePlayerStateChange}
+          onReady={handlePlayerReady}
+          onError={handlePlayerError}
+          volume={isMuted ? 0 : volume}
+          onProgress={setProgress}
+        />
+      )}
+      
       <div className="relative w-full aspect-square overflow-hidden rounded-xl mb-6 group">
         <img 
           src={song.albumArt} 

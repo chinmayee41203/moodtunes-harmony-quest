@@ -37,7 +37,7 @@ const Index = () => {
     setCurrentSong(song);
     
     toast({
-      title: "Now Playing",
+      title: "Loading Song",
       description: `${song.title} by ${song.artist}`,
       duration: 2000,
     });

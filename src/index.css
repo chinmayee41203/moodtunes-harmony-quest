@@ -1,209 +1,135 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+ 
 @layer base {
   :root {
-    --background: 300 30% 97%;
-    --foreground: 270 10% 10%;
-
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 270 10% 10%;
-
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 270 10% 10%;
-
-    --primary: 280 70% 60%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
     --primary-foreground: 0 0% 98%;
-
-    --secondary: 300 25% 92%;
-    --secondary-foreground: 270 10% 20%;
-
-    --muted: 280 30% 92%;
-    --muted-foreground: 270 10% 40%;
-
-    --accent: 280 70% 95%;
-    --accent-foreground: 270 10% 20%;
-
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
 
-    --border: 270 20% 90%;
-    --input: 270 20% 90%;
-    --ring: 280 70% 60%;
-
-    --radius: 0.75rem;
-
-    --sidebar-background: 300 30% 97%;
-    --sidebar-foreground: 270 10% 26.1%;
-    --sidebar-primary: 280 70% 60%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 300 25% 92%;
-    --sidebar-accent-foreground: 270 10% 20%;
-    --sidebar-border: 270 20% 91%;
-    --sidebar-ring: 280 70% 60%;
-
-    --font-sans: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    /* Mood colors */
+    --mood-happy: 47 95% 50%;
+    --mood-calm: 199 91% 65%;
+    --mood-sad: 262 83% 58%;
+    --mood-energetic: 358 75% 59%;
+    --mood-focus: 168 79% 37%;
   }
-
+ 
   .dark {
-    --background: 280 20% 12%;
-    --foreground: 300 25% 95%;
-
-    --card: 280 20% 12%;
-    --card-foreground: 300 25% 95%;
-
-    --popover: 280 20% 12%;
-    --popover-foreground: 300 25% 95%;
-
-    --primary: 300 70% 75%;
-    --primary-foreground: 280 10% 10%;
-
-    --secondary: 280 15% 25%;
-    --secondary-foreground: 300 25% 95%;
-
-    --muted: 280 15% 25%;
-    --muted-foreground: 280 10% 70%;
-
-    --accent: 280 15% 30%;
-    --accent-foreground: 300 25% 95%;
-
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 300 25% 95%;
-
-    --border: 280 15% 30%;
-    --input: 280 15% 30%;
-    --ring: 300 70% 75%;
-
-    --sidebar-background: 280 20% 15%;
-    --sidebar-foreground: 300 25% 90%;
-    --sidebar-primary: 300 70% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 280 15% 30%;
-    --sidebar-accent-foreground: 300 25% 90%;
-    --sidebar-border: 280 15% 30%;
-    --sidebar-ring: 300 70% 65%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
   }
 }
-
+ 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-  }
-
-  @font-face {
-    font-family: 'SF Pro Display';
-    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-regular-webfont.woff2') format('woff2');
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-  }
-
-  @font-face {
-    font-family: 'SF Pro Display';
-    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-medium-webfont.woff2') format('woff2');
-    font-weight: 500;
-    font-style: normal;
-    font-display: swap;
-  }
-
-  @font-face {
-    font-family: 'SF Pro Display';
-    src: url('https://applesocial.s3.amazonaws.com/assets/styles/fonts/sanfrancisco/sanfranciscodisplay-bold-webfont.woff2') format('woff2');
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-@layer components {
-  .glass-card {
-    @apply bg-white/30 dark:bg-black/30 backdrop-blur-md border border-white/40 dark:border-white/10 rounded-2xl shadow-lg;
-  }
-
-  .glass-card-hover {
-    @apply transition-all duration-300 hover:bg-white/40 dark:hover:bg-black/40 hover:shadow-xl;
-  }
-
-  .mood-button {
-    @apply relative overflow-hidden rounded-2xl px-8 py-6 transition-all duration-300 ease-out;
-  }
-
-  .mood-button::before {
-    @apply content-[''] absolute top-0 left-0 w-full h-full opacity-0 transition-opacity duration-300 ease-out;
-  }
-
-  .mood-button:hover::before {
-    @apply opacity-20;
-  }
-
-  .player-controls {
-    @apply flex items-center justify-center gap-4 my-6;
-  }
-
-  .player-control-button {
-    @apply rounded-full p-3 transition-all duration-200 ease-out hover:bg-black/5 dark:hover:bg-white/5 active:scale-95;
-  }
-
-  .player-progress {
-    @apply w-full h-1 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden;
-  }
-
-  .visualizer-bar {
-    @apply bg-primary rounded-full mx-[1px] transition-all duration-150 ease-out;
-  }
+/* Glass card styling */
+.glass-card {
+  @apply rounded-xl bg-white/10 backdrop-blur-lg border border-white/20 shadow-lg;
 }
 
-.mood-ripple-effect {
+/* Player progress */
+.player-progress {
+  @apply h-1 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden;
+}
+
+/* Player controls */
+.player-controls {
+  @apply flex items-center justify-center gap-4 my-6;
+}
+
+.player-control-button {
+  @apply w-10 h-10 rounded-full flex items-center justify-center text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors;
+}
+
+/* Visualizer bar */
+.visualizer-bar {
+  @apply rounded-full transition-all duration-100 ease-linear;
+}
+
+/* Mood colors */
+.bg-mood-happy {
+  @apply bg-amber-400;
+}
+
+.bg-mood-calm {
+  @apply bg-sky-400;
+}
+
+.bg-mood-sad {
+  @apply bg-purple-500;
+}
+
+.bg-mood-energetic {
+  @apply bg-red-500;
+}
+
+.bg-mood-focus {
+  @apply bg-emerald-600;
+}
+
+/* Animation utilities */
+.animate-fade-in {
+  animation: fadeIn 1s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hide YouTube iframe but still allow it to play */
+.hidden-youtube-player {
   position: absolute;
-  border-radius: 50%;
-  transform: scale(0);
-  animation: ripple 0.6s linear;
-  background-color: rgba(255, 255, 255, 0.3);
+  top: -9999px;
+  left: -9999px;
+  height: 0;
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
-@keyframes ripple {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
-
-.track-card {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.track-card:hover {
-  transform: translateY(-8px);
-}
-
-/* Fancy scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
-}

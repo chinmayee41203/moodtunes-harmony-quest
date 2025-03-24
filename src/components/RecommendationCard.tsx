@@ -8,6 +8,8 @@ interface Song {
   artist: string;
   albumArt: string;
   duration: number;
+  audioUrl: string;
+  youtubeId: string;
 }
 
 interface RecommendationCardProps {
