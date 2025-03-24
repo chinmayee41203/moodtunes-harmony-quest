@@ -34,9 +34,10 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   volume,
   onProgress
 }) => {
-  const playerRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isApiLoadedRef = useRef<boolean>(false);
+  const videoIdRef = useRef<string>(videoId);
   const progressIntervalRef = useRef<number | null>(null);
 
   // Load YouTube API
@@ -51,10 +52,14 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     }
 
     // Initialize YouTube player when API is ready
-    window.onYouTubeIframeAPIReady = initializePlayer;
+    window.onYouTubeIframeAPIReady = () => {
+      isApiLoadedRef.current = true;
+      initializePlayer();
+    };
 
     // If the API was already loaded, initialize the player directly
     if (window.YT && window.YT.Player) {
+      isApiLoadedRef.current = true;
       initializePlayer();
     }
 
@@ -64,90 +69,131 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       }
       // Clean up player if needed
       if (playerInstanceRef.current) {
-        playerInstanceRef.current.destroy();
+        try {
+          playerInstanceRef.current.destroy();
+        } catch (e) {
+          console.error("Error destroying YouTube player:", e);
+        }
       }
     };
   }, []);
 
   // Initialize the YouTube player
   const initializePlayer = () => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !isApiLoadedRef.current || !window.YT || !window.YT.Player) {
+      return;
+    }
     
-    playerInstanceRef.current = new window.YT.Player(containerRef.current, {
-      height: '0',
-      width: '0',
-      videoId: videoId,
-      playerVars: {
-        autoplay: 0,
-        controls: 0,
-        showinfo: 0,
-        rel: 0,
-        fs: 0,
-        modestbranding: 1,
-      },
-      events: {
-        onReady: handlePlayerReady,
-        onStateChange: handlePlayerStateChange,
-        onError: handlePlayerError,
-      },
-    });
-    
-    playerRef.current = playerInstanceRef.current;
+    try {
+      playerInstanceRef.current = new window.YT.Player(containerRef.current, {
+        height: '0',
+        width: '0',
+        videoId: videoIdRef.current,
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          showinfo: 0,
+          rel: 0,
+          fs: 0,
+          modestbranding: 1,
+        },
+        events: {
+          onReady: handlePlayerReady,
+          onStateChange: handlePlayerStateChange,
+          onError: handlePlayerError,
+        },
+      });
+    } catch (error) {
+      console.error("Error initializing YouTube player:", error);
+      onError(error);
+    }
   };
 
   // Update video when ID changes
   useEffect(() => {
-    if (playerRef.current && videoId) {
-      // If we already have a player, load the new video
-      playerRef.current.loadVideoById(videoId);
-      
-      // Reset the progress tracking
-      if (progressIntervalRef.current) {
-        window.clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
+    // Store the current videoId in the ref
+    videoIdRef.current = videoId;
+    
+    // Only try to load a new video if the player is initialized
+    if (playerInstanceRef.current && playerInstanceRef.current.loadVideoById) {
+      try {
+        playerInstanceRef.current.loadVideoById(videoId);
+        
+        // Reset the progress tracking
+        if (progressIntervalRef.current) {
+          window.clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+      } catch (error) {
+        console.error("Error loading video:", error);
+        onError(error);
       }
     }
-  }, [videoId]);
+  }, [videoId, onError]);
 
   // Handle play/pause state changes
   useEffect(() => {
-    if (!playerRef.current) return;
+    if (!playerInstanceRef.current) return;
     
-    if (isPlaying) {
-      playerRef.current.playVideo();
-      
-      // Start tracking progress
-      if (!progressIntervalRef.current) {
-        progressIntervalRef.current = window.setInterval(() => {
-          if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
-            const currentTime = playerRef.current.getCurrentTime();
-            const duration = playerRef.current.getDuration();
-            const progress = (currentTime / duration) * 100;
-            onProgress(progress);
+    try {
+      if (isPlaying) {
+        // Make sure player functions exist before calling them
+        if (typeof playerInstanceRef.current.playVideo === 'function') {
+          playerInstanceRef.current.playVideo();
+          
+          // Start tracking progress
+          if (!progressIntervalRef.current) {
+            progressIntervalRef.current = window.setInterval(() => {
+              if (playerInstanceRef.current && 
+                  typeof playerInstanceRef.current.getCurrentTime === 'function' &&
+                  typeof playerInstanceRef.current.getDuration === 'function') {
+                const currentTime = playerInstanceRef.current.getCurrentTime();
+                const duration = playerInstanceRef.current.getDuration();
+                if (currentTime && duration) {
+                  const progress = (currentTime / duration) * 100;
+                  onProgress(progress);
+                }
+              }
+            }, 1000);
           }
-        }, 1000);
+        }
+      } else {
+        // Make sure player functions exist before calling them
+        if (typeof playerInstanceRef.current.pauseVideo === 'function') {
+          playerInstanceRef.current.pauseVideo();
+          
+          // Stop tracking progress
+          if (progressIntervalRef.current) {
+            window.clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+        }
       }
-    } else {
-      playerRef.current.pauseVideo();
-      
-      // Stop tracking progress
-      if (progressIntervalRef.current) {
-        window.clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
+    } catch (error) {
+      console.error("Error controlling playback:", error);
+      onError(error);
     }
-  }, [isPlaying, onProgress]);
+  }, [isPlaying, onProgress, onError]);
 
   // Handle volume changes
   useEffect(() => {
-    if (playerRef.current) {
-      playerRef.current.setVolume(volume * 100);
+    if (playerInstanceRef.current && typeof playerInstanceRef.current.setVolume === 'function') {
+      try {
+        playerInstanceRef.current.setVolume(volume * 100);
+      } catch (error) {
+        console.error("Error setting volume:", error);
+      }
     }
   }, [volume]);
 
   const handlePlayerReady = (event: any) => {
+    console.log("YouTube player ready");
     onReady();
-    event.target.setVolume(volume * 100);
+    try {
+      event.target.setVolume(volume * 100);
+    } catch (error) {
+      console.error("Error setting initial volume:", error);
+    }
   };
 
   const handlePlayerStateChange = (event: any) => {
@@ -164,6 +210,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   };
 
   const handlePlayerError = (event: any) => {
+    console.error("YouTube Player Error:", event.data);
     onError(event.data);
   };
 
