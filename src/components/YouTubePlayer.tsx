@@ -66,6 +66,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     return () => {
       if (progressIntervalRef.current) {
         window.clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
       }
       // Clean up player if needed
       if (playerInstanceRef.current) {
@@ -131,6 +132,36 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     }
   }, [videoId, onError]);
 
+  // Setup progress tracking function
+  const startProgressTracking = () => {
+    // Clear any existing interval first
+    if (progressIntervalRef.current) {
+      window.clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    
+    // Create a new interval for tracking progress
+    progressIntervalRef.current = window.setInterval(() => {
+      if (!playerInstanceRef.current) return;
+      
+      try {
+        if (typeof playerInstanceRef.current.getCurrentTime === 'function' &&
+            typeof playerInstanceRef.current.getDuration === 'function') {
+          const currentTime = playerInstanceRef.current.getCurrentTime() || 0;
+          const duration = playerInstanceRef.current.getDuration() || 1;
+          
+          // Avoid division by zero
+          if (duration > 0) {
+            const progress = (currentTime / duration) * 100;
+            onProgress(progress);
+          }
+        }
+      } catch (error) {
+        console.error("Error updating progress:", error);
+      }
+    }, 1000); // Update every second
+  };
+
   // Handle play/pause state changes
   useEffect(() => {
     if (!playerInstanceRef.current) return;
@@ -140,29 +171,15 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         // Make sure player functions exist before calling them
         if (typeof playerInstanceRef.current.playVideo === 'function') {
           playerInstanceRef.current.playVideo();
-          
-          // Start tracking progress
-          if (!progressIntervalRef.current) {
-            progressIntervalRef.current = window.setInterval(() => {
-              if (playerInstanceRef.current && 
-                  typeof playerInstanceRef.current.getCurrentTime === 'function' &&
-                  typeof playerInstanceRef.current.getDuration === 'function') {
-                const currentTime = playerInstanceRef.current.getCurrentTime();
-                const duration = playerInstanceRef.current.getDuration();
-                if (currentTime && duration) {
-                  const progress = (currentTime / duration) * 100;
-                  onProgress(progress);
-                }
-              }
-            }, 1000);
-          }
+          // Start progress tracking when playing
+          startProgressTracking();
         }
       } else {
         // Make sure player functions exist before calling them
         if (typeof playerInstanceRef.current.pauseVideo === 'function') {
           playerInstanceRef.current.pauseVideo();
           
-          // Stop tracking progress
+          // Stop tracking progress when paused
           if (progressIntervalRef.current) {
             window.clearInterval(progressIntervalRef.current);
             progressIntervalRef.current = null;
@@ -173,7 +190,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
       console.error("Error controlling playback:", error);
       onError(error);
     }
-  }, [isPlaying, onProgress, onError]);
+  }, [isPlaying, onError]);
 
   // Handle volume changes
   useEffect(() => {
@@ -188,6 +205,10 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
 
   const handlePlayerReady = (event: any) => {
     console.log("YouTube player ready");
+    // Start progress tracking immediately if it should be playing
+    if (isPlaying) {
+      startProgressTracking();
+    }
     onReady();
     try {
       event.target.setVolume(volume * 100);
@@ -197,15 +218,26 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   };
 
   const handlePlayerStateChange = (event: any) => {
-    onStateChange(event.data);
+    const playerState = event.data;
+    onStateChange(playerState);
     
-    // Handle ended state
-    if (event.data === window.YT.PlayerState.ENDED) {
+    // Handle different player states
+    if (playerState === window.YT.PlayerState.PLAYING) {
+      // Start progress tracking when video starts playing
+      startProgressTracking();
+    } else if (playerState === window.YT.PlayerState.PAUSED) {
+      // Stop progress tracking when video is paused
       if (progressIntervalRef.current) {
         window.clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      onProgress(100); // Update progress to 100% when video ends
+    } else if (playerState === window.YT.PlayerState.ENDED) {
+      // Stop progress tracking and set progress to 100% when video ends
+      if (progressIntervalRef.current) {
+        window.clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      onProgress(100);
     }
   };
 
